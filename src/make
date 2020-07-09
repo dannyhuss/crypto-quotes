@@ -1,0 +1,1 @@
+g++ -o crypto crypto.cpp -lncurses -I/usr/local/boost_1_73_0
