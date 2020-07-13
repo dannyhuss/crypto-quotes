@@ -13,8 +13,10 @@
 class CryptoQuotesView {
     public:
         CryptoQuotesView(CryptoQuotesModel *model);
+        int InitializeScreen(int screen_style, int text_encoding);
     private:
         CryptoQuotesModel *model;
+        Screen *screen;
 };
 
 #endif
