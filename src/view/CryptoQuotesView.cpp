@@ -1,5 +1,4 @@
 #include "CryptoQuotesView.hpp"
-#include "screen/NCursesScreen.hpp"
 
 
 #define TERMINAL_SCREEN 1

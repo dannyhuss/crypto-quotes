@@ -1,20 +1,22 @@
 #include "NCursesWindow.hpp"
+#include "ncurses.h"
+#include <boost/algorithm/string.hpp>
 
 // opens up access to various bool checks within ncurses like 'is_nodelay(const WINDOW *win)'
 #ifndef NCURSES_OPAQUE
 #define NCURSES_OPAQUE
 #endif
 
-#define __WAIT_FOR_KEYPRESS 0
-#define __DIRECT_ACCESS 1
+#define __PAUSE_FOR_INPUT 0
+#define __NO_PAUSING_FOR_INPUT 1
 
 
 
 NCursesWindow::NCursesWindow(int row_count, int column_count, int x_position, int y_position) {
-    this->window = newwin(row_count, column_count, y_position, x_position)
+    this->window = newwin(row_count, column_count, y_position, x_position);
     
     if (!this->window)
-        throw new std::exception("Could not create window");
+        throw std::exception();
     
     this->row_count = row_count;
     this->column_count = column_count;
@@ -25,14 +27,22 @@ NCursesWindow::NCursesWindow(int row_count, int column_count, int x_position, in
 }
 
 NCursesWindow::~NCursesWindow(void) {
-
+    delwin(this->window);   // free memory for window
 }
 
 
-int NCursesWindow::input_buffer_mode(int mode) {
+
+/**
+ *  Alters how NCurses retrieves keypresses: 
+ *    * pause program execution to wait for a keypress when
+ *      the buffer is empty (__PAUSE_FOR_INPUT)
+ *    * never pause execution when checking for a keypress
+ *      (__NO_PAUSING_FOR_INPUT)          
+**/
+void NCursesWindow::input_buffer_access_mode(int mode) {
     
-    if (mode != 0) 
-        mode = 1;
+    if (mode != __PAUSE_FOR_INPUT) 
+        mode = __NO_PAUSING_FOR_INPUT;
     
    	nodelay(this->window, mode);
 }
@@ -44,11 +54,13 @@ int NCursesWindow::input_buffer_mode(int mode) {
 **/
 void NCursesWindow::clear_input_buffer(void) {
 
-    this->input_buffer_mode(__DIRECT_ACCESS);
+    wint_t *key;
+    
+    this->input_buffer_access_mode(__NO_PAUSING_FOR_INPUT);
 
-	while (wget_wch(this->window) != ERR); // clear input buffer
+	while (wget_wch(this->window, key) != ERR); // clear input buffer
 
-	this->input_buffer_mode(__WAIT_FOR_KEYPRESS);
+	this->input_buffer_access_mode(__PAUSE_FOR_INPUT);
 }
 
 
@@ -56,18 +68,18 @@ void NCursesWindow::clear_input_buffer(void) {
 // todo: mouse, keyboard or both?
 int NCursesWindow::key_pressed(void) {
 
-    wint_t *key; // wint_t type is defined by NCurses
+    wint_t *key;
     
-    this->input_buffer_mode(__DIRECT_ACCESS);
+    this->input_buffer_access_mode(__NO_PAUSING_FOR_INPUT);
 
-	int no_key_was_pressed = (wget_wch(this->window, key) == ERR)
+	int no_key_was_pressed = (wget_wch(this->window, key) == ERR);
 	
-	this->input_buffer_mode(__WAIT_FOR_KEYPRESS);
+	this->input_buffer_access_mode(__PAUSE_FOR_INPUT);
 	
 	if (no_key_was_pressed)
 	    return false;
     // else
-   	unget_wch(key); // put keypress back into buffer
+   	unget_wch(*key); // push keypress back onto buffer
 	return true;
 }
 

@@ -2,7 +2,7 @@
 #define __CRYPTOQUOTESVIEW_HPP 1
 
 #include "../model/CryptoQuotesModel.hpp"
-
+#include "screen/NCursesScreen.hpp"
 /**
  *  Author: Danny Huss
  *  Email: danny.huss@protonmail.com
@@ -10,13 +10,15 @@
  *  Description: Crypto-Quotes main view handler
 **/
 
+using namespace std;
+
 class CryptoQuotesView {
     public:
         CryptoQuotesView(CryptoQuotesModel *model);
         int InitializeScreen(int screen_style, int text_encoding);
     private:
         CryptoQuotesModel *model;
-        Screen *screen;
+        NCursesScreen *screen;
 };
 
 #endif

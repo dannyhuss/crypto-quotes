@@ -1,9 +1,9 @@
 #include "NCursesScreen.hpp"
 #include "NCursesWindow.hpp"
+#include "ncurses.h"
+#include <boost/algorithm/string.hpp>
 
-
-
-NCursesScreen::NCursesScreen(void) {
+NCursesScreen::NCursesScreen(int text_encoding) {
 
     initscr();      // initialize NCurses
     start_color();  // allow text and background coloring
@@ -18,14 +18,15 @@ NCursesScreen::~NCursesScreen(void) {
 
     this->show_text_cursor();
     
-    int i = 0;
-    
     /** 
         NOTE:   subwindows must be deleted before a parent window can be
                 (if that is ever implemented)
     **/
+    
+    int i = 0;
+    
     while (i < this->window_count) {
-        delwin(this->windows[i]);   // free memory for window
+        delete(this->windows[i]);
         i++;
     }
         
@@ -37,10 +38,10 @@ NCursesScreen::~NCursesScreen(void) {
 NCursesWindow * NCursesScreen::create_window(string window_name, int row_count, int column_count, int x_position, int y_position) {
 
     if (this->window_count >= __MAX_WINDOWS)
-        return null_ptr;
+        return nullptr;
         
     if (!this->add_window_name(window_name))
-        return null_ptr;   // window_name already in use
+        return nullptr;   // window_name already in use
 
     try {
     
@@ -49,7 +50,7 @@ NCursesWindow * NCursesScreen::create_window(string window_name, int row_count, 
     } catch (...) {
     
         this->windows[this->window_count] = 0;
-        return null_ptr;   // could not create window
+        return nullptr;   // could not create window
 
     }
 
@@ -68,12 +69,10 @@ int NCursesScreen::add_window_name(string window_name) {
     
     if (window_name.empty())
         return false;
-        
-    if (this->window_count == 0) { 
-        this->window_names[0] = window_name;
-        return true;
-    }
 
+    /**
+        Verify window_name is not currently in use
+    **/
     int i = 0;
             
     while (i < this->window_count) {
@@ -97,8 +96,8 @@ int NCursesScreen::window_name_exists(string window_name) {
         return false;
     
     for (int i = 0; i < this->window_count; i++) {
-        if (this->window_names[i] == this->window_name) {
-            return true
+        if (this->window_names[i] == window_name) {
+            return true;
         }
     }
     
@@ -110,7 +109,7 @@ int NCursesScreen::window_name_exists(string window_name) {
 int NCursesScreen::set_active_window(string window_name) {
 
     for (int i = 0; i < this->window_count; i++) {
-        if (this->window_names[i] == this->window_name) {
+        if (this->window_names[i] == window_name) {
             this->active_window = i;
             return true;
         }
@@ -126,20 +125,22 @@ int NCursesScreen::set_active_window(string window_name) {
     else
     returns window of window_name
 **/
-NCursesWindow * NCursesScreen::get_window(string window_name = "") {
+NCursesWindow * NCursesScreen::get_window(string window_name) {
 
-    if window_name.empty() 
+    // todo: validate this->active_window
+    if (window_name.empty())
         return this->windows[this->active_window];
         
     for (int i = 0; i < this->window_count; i++) {
-        if (this->window_names[i] == this->window_name) {
+        if (this->window_names[i] == window_name) {
             this->active_window = i;
-            return true;
+            return this->windows[this->active_window];
         }
     }
     
     // window_name does not exist
-    return false;
+    return nullptr;
+}
 
 
 
@@ -163,32 +164,35 @@ void NCursesScreen::use_color_pair(string color_pair) {
 }
 
 
-int NCursesScreen::hide_text_cursor {
-    return (curs_set(CURSOR_HIDDEN) == ERR) ? false : true;
+int NCursesScreen::hide_text_cursor(void) {
+    return (curs_set(__CURSOR_HIDDEN) == ERR) ? false : true;
 }
 
-int NCursesScreen::show_text_cursor {
-    return (curs_set(CURSOR_VISIBLE) == ERR) ? false : true;
+int NCursesScreen::show_text_cursor(void) {
+    return (curs_set(__CURSOR_VISIBLE) == ERR) ? false : true;
 }
 
-int NCursesScreen::hide_mouse_cursor {
+int NCursesScreen::hide_mouse_cursor(void) {
     return false;
 }
 
-int NCursesScreen::show_mouse_cursor {
+int NCursesScreen::show_mouse_cursor(void) {
     return false;
 }
 
 
    
-int NCursesScreen::enable_mouse_tracking(void) {
+void NCursesScreen::enable_mouse_tracking(void) {
 
     mousemask(ALL_MOUSE_EVENTS, NULL);
 }
 
 
 
-int NCursesScreen::disable_mouse_tracking(void) {
+void NCursesScreen::disable_mouse_tracking(void) {
 
     mousemask(0, NULL); // device dependent: may hide cursor
 }
+
+
+
